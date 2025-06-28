@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -10,18 +10,24 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator, // Added for loading states
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // To get the user token
 
+// --- API Configuration ---
+const API_BASE_URL = 'https://your-backend-api.com/api'; // <-- IMPORTANT: REPLACE WITH YOUR API
 
+// --- Types ---
 type ForumViewMode = 'list' | 'detail' | 'create' | 'success';
 
 type Post = {
   id: string;
   authorName: string;
-  authorAvatar: string;
-  timestamp: string;
+  authorAvatar: string; // This will be a URL from the backend
+  timestamp: string; // ISO Date String
+  timestampRelative: string; // e.g., "2h ago"
   title: string;
   content: string;
   contentSnippet: string;
@@ -32,54 +38,44 @@ type Post = {
 type Comment = {
   id: string;
   postId: string;
-  authorName: string;
-  authorAvatar: string;
-  timestamp: string;
+  authorName:string;
+  authorAvatar: string; // URL from backend
+  timestamp: string; // ISO Date String
+  timestampRelative: string; // e.g., "1h ago"
   content: string;
   likeCount: number;
 };
 
-// Dummy Data
-const DUMMY_POSTS: Post[] = [
-  {
-    id: 'post1',
-    authorName: 'Dawood Khan',
-    authorAvatar: 'https://i.pravatar.cc/150?u=dawood',
-    timestamp: '2h ago',
-    title: 'How do you balance screen time for kids?',
-    content: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.',
-    contentSnippet: "I'm struggling to find a healthy balance between screen time and playtime for my 6-year-old. Any tips?",
-    category: 'General Parenting',
-    commentCount: 11,
-  },
-  {
-    id: 'post2',
-    authorName: 'Jane Doe',
-    authorAvatar: 'https://i.pravatar.cc/150?u=jane',
-    timestamp: '5h ago',
-    title: 'Best strategies for behavior support?',
-    content: 'Exploring different methods for positive reinforcement and behavior support for toddlers. Looking for what has worked for other parents in real-world scenarios, beyond the standard textbook advice. Any personal stories or tips would be greatly appreciated!',
-    contentSnippet: 'Looking for advice on positive reinforcement techniques for toddlers...',
-    category: 'Behavior Support',
-    commentCount: 8,
-  },
-];
+// --- Helper: Centralized Fetch Logic with Auth ---
+const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
+    const token = await AsyncStorage.getItem('userToken');
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+        ...(token && { Authorization: `Bearer ${token}` }),
+    };
 
-const DUMMY_COMMENTS: Comment[] = [
-  {
-    id: 'comment1',
-    postId: 'post1',
-    authorName: 'Maqsood Ahmed',
-    authorAvatar: 'https://i.pravatar.cc/150?u=maqsood',
-    timestamp: '1h ago',
-    content: 'Lorem ipsum is simply dummy text of the printing and typesetting industry ever since the 1500s.',
-    likeCount: 24,
-  },
-];
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+    
+    if (response.status === 401) {
+      // Handle token expiration: e.g., navigate to login screen
+      throw new Error('Unauthorized. Please log in again.');
+    }
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
 
-const FILTER_CATEGORIES = ['General Parenting', 'Behavior Support', 'Autism Journey'];
+    // For DELETE or other methods that might not return a body
+    if (response.status === 204) {
+        return null;
+    }
+    
+    return response.json();
+};
 
 
+// --- UI Components (No major changes) ---
 const AppHeader: React.FC<{ onBack?: () => void }> = ({ onBack }) => (
     <View className="flex-row justify-between items-center px-4 pt-7 pb-2 z-10">
       {onBack ? (
@@ -103,103 +99,194 @@ const AppHeader: React.FC<{ onBack?: () => void }> = ({ onBack }) => (
         </TouchableOpacity>
       </View>
     </View>
-  );
+);
 
 const ForumPostCard: React.FC<{ post: Post; onPress: () => void }> = ({ post, onPress }) => (
-  <View className="bg-white rounded-2xl p-5 shadow-md shadow-black/5 mb-4 mx-4">
-    <Text className="text-lg font-bold text-neutral-800">{post.title}</Text>
-    <Text className="text-neutral-600 mt-1 mb-4">{post.contentSnippet}</Text>
-    <View className="flex-row justify-between items-center border-t border-gray-100 pt-3">
-      <View className="flex-row items-center">
-        <Image source={{ uri: post.authorAvatar }} className="w-7 h-7 rounded-full mr-2" />
-        <Text className="text-sm font-semibold text-neutral-700">{post.authorName}</Text>
-      </View>
-      <View className="flex-row items-center space-x-4">
+    <View className="bg-white rounded-2xl p-5 shadow-md shadow-black/5 mb-4 mx-4">
+      <Text className="text-lg font-bold text-neutral-800">{post.title}</Text>
+      <Text className="text-neutral-600 mt-1 mb-4">{post.contentSnippet}</Text>
+      <View className="flex-row justify-between items-center border-t border-gray-100 pt-3">
         <View className="flex-row items-center">
-          <Ionicons name="chatbubble-ellipses-outline" size={16} color="gray" />
-          <Text className="text-xs text-gray-500 ml-1">{post.commentCount}</Text>
+          <Image source={{ uri: post.authorAvatar }} className="w-7 h-7 rounded-full mr-2" />
+          <Text className="text-sm font-semibold text-neutral-700">{post.authorName}</Text>
         </View>
-        <Text className="text-xs text-gray-500">{post.timestamp}</Text>
+        <View className="flex-row items-center space-x-4">
+          <View className="flex-row items-center">
+            <Ionicons name="chatbubble-ellipses-outline" size={16} color="gray" />
+            <Text className="text-xs text-gray-500 ml-1">{post.commentCount}</Text>
+          </View>
+          <Text className="text-xs text-gray-500">{post.timestampRelative}</Text>
+        </View>
       </View>
+      <TouchableOpacity
+        onPress={onPress}
+        className="border border-gray-300 rounded-lg py-2 mt-4"
+      >
+        <Text className="text-center font-bold text-neutral-700">VIEW</Text>
+      </TouchableOpacity>
     </View>
-    <TouchableOpacity
-      onPress={onPress}
-      className="border border-gray-300 rounded-lg py-2 mt-4"
-    >
-      <Text className="text-center font-bold text-neutral-700">VIEW</Text>
-    </TouchableOpacity>
-  </View>
 );
 
 export default function ForumsScreen() {
   const [viewMode, setViewMode] = useState<ForumViewMode>('list');
-  const [activeFilter, setActiveFilter] = useState('General Parenting');
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [activePostId, setActivePostId] = useState<string | null>(null);
 
-  const [posts, setPosts] = useState<Post[]>(DUMMY_POSTS);
-  const [comments, setComments] = useState<Comment[]>(DUMMY_COMMENTS);
-  
+  // Data states
+  const [categories, setCategories] = useState<string[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [activePost, setActivePost] = useState<Post | null>(null);
+
+  // Loading and error states
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Form states
   const [topicTitle, setTopicTitle] = useState('');
   const [category, setCategory] = useState('');
   const [details, setDetails] = useState('');
-  
   const [newComment, setNewComment] = useState('');
-  
-  const activePost = posts.find(p => p.id === activePostId);
-  const activePostComments = comments.filter(c => c.postId === activePostId);
 
-  const handleCreatePost = () => {
-    if (!topicTitle.trim() || !details.trim()) {
+  // Fetch initial data (categories and posts for the default category)
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const fetchedCategories: string[] = await fetchWithAuth('/forums/categories');
+        if (fetchedCategories.length > 0) {
+          setCategories(fetchedCategories);
+          setActiveFilter(fetchedCategories[0]); // Set the first category as active
+          // Fetch posts for the now active filter
+          const fetchedPosts: Post[] = await fetchWithAuth(`/forums/posts?category=${encodeURIComponent(fetchedCategories[0])}`);
+          setPosts(fetchedPosts);
+        } else {
+            setPosts([]);
+        }
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadInitialData();
+  }, []);
+
+  // Fetch posts when the active filter changes
+  useEffect(() => {
+    if (!activeFilter) return; // Don't fetch if no filter is set
+    const fetchPostsForFilter = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const fetchedPosts: Post[] = await fetchWithAuth(`/forums/posts?category=${encodeURIComponent(activeFilter)}`);
+        setPosts(fetchedPosts);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPostsForFilter();
+  }, [activeFilter]);
+  
+  // Fetch post details and comments when entering detail view
+  useEffect(() => {
+    if (viewMode !== 'detail' || !activePostId) return;
+    const loadPostDetails = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [postData, commentsData] = await Promise.all([
+          fetchWithAuth(`/forums/posts/${activePostId}`),
+          fetchWithAuth(`/forums/posts/${activePostId}/comments`),
+        ]);
+        setActivePost(postData);
+        setComments(commentsData);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadPostDetails();
+  }, [viewMode, activePostId]);
+
+
+  const handleCreatePost = async () => {
+    if (!topicTitle.trim() || !details.trim() || !category.trim()) {
         alert("Please fill in all fields.");
         return;
     }
-    const postCategory = category.trim() || 'General Parenting';
-    const newPost: Post = {
-        id: `post_${Date.now()}`,
-        authorName: 'Saeed Ahmed',
-        authorAvatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d',
-        timestamp: 'just now',
+    try {
+      const newPostData = {
         title: topicTitle,
         content: details,
-        contentSnippet: details.substring(0, 100) + (details.length > 100 ? '...' : ''),
-        category: postCategory,
-        commentCount: 0
-    };
+        category: category,
+      };
+      const createdPost: Post = await fetchWithAuth('/forums/posts', {
+        method: 'POST',
+        body: JSON.stringify(newPostData),
+      });
 
-    setPosts(prev => [newPost, ...prev]);
-    setActiveFilter(postCategory);
-    if (!FILTER_CATEGORIES.includes(postCategory)) {
-      FILTER_CATEGORIES.push(postCategory);
+      if (!categories.includes(category)) {
+        setCategories(prev => [...prev, category]);
+      }
+      setActiveFilter(category);
+      setActivePostId(createdPost.id);
+      setViewMode('success');
+      // Reset form fields
+      setTopicTitle('');
+      setCategory('');
+      setDetails('');
+    } catch (err: any) {
+      alert(`Error creating post: ${err.message}`);
     }
-    
-    setActivePostId(newPost.id);
-    setViewMode('success');
-    setTopicTitle('');
-    setCategory('');
-    setDetails('');
   };
   
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (!newComment.trim() || !activePostId) return;
-    const addedComment: Comment = {
-      id: `comment_${Date.now()}`,
-      postId: activePostId,
-      authorName: 'Saeed Ahmed',
-      authorAvatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d',
-      timestamp: 'just now',
-      content: newComment,
-      likeCount: 0,
-    };
-    setComments(prev => [...prev, addedComment]);
-    setPosts(prevPosts => prevPosts.map(p => 
-      p.id === activePostId ? { ...p, commentCount: p.commentCount + 1 } : p
-    ));
-    setNewComment('');
-  }
+    try {
+        const newCommentData = { content: newComment };
+        const addedComment: Comment = await fetchWithAuth(`/forums/posts/${activePostId}/comments`, {
+            method: 'POST',
+            body: JSON.stringify(newCommentData),
+        });
 
+        setComments(prev => [...prev, addedComment]);
+        if (activePost) {
+            setActivePost(prev => prev ? { ...prev, commentCount: prev.commentCount + 1 } : null);
+        }
+        setNewComment('');
+    } catch (err: any) {
+        alert(`Error adding comment: ${err.message}`);
+    }
+  };
 
+  const renderLoadingOrError = (context: string) => {
+    if (isLoading) {
+        return (
+            <View className="flex-1 justify-center items-center">
+                <ActivityIndicator size="large" color="#3B82F6" />
+                <Text className="mt-4 text-gray-600">Loading {context}...</Text>
+            </View>
+        );
+    }
+    if (error) {
+        return (
+            <View className="flex-1 justify-center items-center p-5">
+                <Text className="text-red-500 font-bold text-lg">An Error Occurred</Text>
+                <Text className="text-red-400 text-center mt-2">{error}</Text>
+            </View>
+        );
+    }
+    return null;
+  };
   
-  const renderList = () => (
+  const renderList = () => {
+    const loadingOrError = renderLoadingOrError('forums');
+    return (
     <>
       <AppHeader />
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
@@ -210,7 +297,7 @@ export default function ForumsScreen() {
 
         <View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-            {FILTER_CATEGORIES.map(cat => (
+            {categories.map(cat => (
               <TouchableOpacity
                 key={cat}
                 onPress={() => setActiveFilter(cat)}
@@ -223,12 +310,16 @@ export default function ForumsScreen() {
         </View>
 
         <View className="pt-4">
-          {posts.filter(p => p.category === activeFilter).map(post => (
-            <ForumPostCard key={post.id} post={post} onPress={() => {
-              setActivePostId(post.id);
-              setViewMode('detail');
-            }} />
-          ))}
+          {loadingOrError ? loadingOrError : posts.length > 0 ? (
+            posts.map(post => (
+              <ForumPostCard key={post.id} post={post} onPress={() => {
+                setActivePostId(post.id);
+                setViewMode('detail');
+              }} />
+            ))
+          ) : (
+            <Text className="text-center text-gray-500 mt-10">No posts in this category yet.</Text>
+          )}
         </View>
       </ScrollView>
 
@@ -240,10 +331,13 @@ export default function ForumsScreen() {
         <Text className="text-white font-bold ml-1">New Discussion</Text>
       </TouchableOpacity>
     </>
-  );
+  )};
 
   const renderDetail = () => {
+    const loadingOrError = renderLoadingOrError('post details');
+    if (loadingOrError) return <><AppHeader onBack={() => setViewMode('list')} />{loadingOrError}</>;
     if (!activePost) return null;
+
     return (
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={90}>
         <AppHeader onBack={() => setViewMode('list')} />
@@ -254,7 +348,7 @@ export default function ForumsScreen() {
                         <Image source={{ uri: activePost.authorAvatar }} className="w-12 h-12 rounded-full mr-3" />
                         <View>
                             <Text className="text-lg font-bold text-neutral-800">{activePost.authorName}</Text>
-                            <Text className="text-sm text-gray-500">{activePost.timestamp}</Text>
+                            <Text className="text-sm text-gray-500">{activePost.timestampRelative}</Text>
                         </View>
                     </View>
                     <TouchableOpacity className="p-2 -mr-2"><Ionicons name="ellipsis-vertical" size={22} color="gray" /></TouchableOpacity>
@@ -268,13 +362,13 @@ export default function ForumsScreen() {
                 </View>
                 <View className="mt-8 border-t border-gray-200 pt-6">
                     <Text className="text-lg font-bold text-neutral-800 mb-4">{activePost.commentCount} Comments</Text>
-                    {activePostComments.length > 0 ? activePostComments.map(comment => (
+                    {comments.length > 0 ? comments.map(comment => (
                         <View key={comment.id} className="flex-row items-start mb-6">
                            <Image source={{ uri: comment.authorAvatar }} className="w-9 h-9 rounded-full mr-3 mt-1" />
                            <View className="flex-1">
                                 <View className="flex-row justify-between items-center">
                                     <Text className="font-bold text-neutral-800">{comment.authorName}</Text>
-                                    <Text className="text-xs text-gray-400">{comment.timestamp}</Text>
+                                    <Text className="text-xs text-gray-400">{comment.timestampRelative}</Text>
                                 </View>
                                 <Text className="text-neutral-600 mt-1">{comment.content}</Text>
                                 <View className="flex-row items-center mt-2 space-x-4">
@@ -301,6 +395,7 @@ export default function ForumsScreen() {
     );
   }
 
+  // renderCreate and renderSuccess have no API calls, so they remain largely the same.
   const renderCreate = () => (
       <>
         <AppHeader onBack={() => setViewMode('list')} />
@@ -313,6 +408,7 @@ export default function ForumsScreen() {
                 </View>
                 <View>
                     <Text className="font-semibold text-neutral-600 mb-2">Category</Text>
+                    {/* It would be better to replace this with a dropdown/picker populated by the `categories` state */}
                     <TextInput value={category} onChangeText={setCategory} placeholder="e.g., General Parenting" className="bg-white border border-gray-300 rounded-xl p-4 text-base" />
                 </View>
                 <View>
