@@ -308,7 +308,7 @@ const AddScreen: React.FC = () => {
           </>
         ) : (
           <View className="items-center px-4 mt-4 pt-8">
-            <Image source={require('../../assets/images/checkin_done.png')} className="w-24 h-24" resizeMode="contain" />
+            {/* <Image source={require('../../assets/images/checkin_done.png')} className="w-24 h-24" resizeMode="contain" /> */}
             <Text className="text-2xl font-bold text-neutral-800 text-center mt-4">Check-In Complete!</Text>
             <Text className="text-base text-neutral-600 text-center mt-2 w-3/4">
               You've already completed the check-in for today. Come back tomorrow for the next one!
