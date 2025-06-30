@@ -10,7 +10,7 @@ import {
   ImageSourcePropType,
   TextInput,
   Modal,
-  ActivityIndicator, // Added for loading state
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,7 +26,7 @@ type Doctor = {
   name: string;
   specialty: string;
   location: string;
-  avatar: ImageSourcePropType; // This will need to be handled, assuming backend sends a URL
+  avatar: ImageSourcePropType;
   rating: number;
   reviews: number;
   patients: string;
@@ -40,11 +40,9 @@ type Doctor = {
 type Appointment = {
   id: string;
   doctorId: string;
-  datetime: Date; // Note: API will send this as a string, we need to convert it
+  datetime: Date;
   status: 'upcoming' | 'completed';
 };
-
-// DUMMY DATA IS REMOVED as it will be fetched from the API.
 
 const TIME_SLOTS = [
   '09.00 AM', '09.30 AM', '10.00 AM', '10.30 AM',
@@ -52,7 +50,8 @@ const TIME_SLOTS = [
   '04.00 PM', '04.30 PM', '05.00 PM', '05.30 PM',
 ];
 
-const figmaBlueGradient = ['#3B82F6', '#2563EB'] as const;
+// --- MODIFICATION: Define the new Figma gradient ---
+const figmaBlueGradientNew = ['#1072E5', '#64ABFF'] as const;
 
 // --- Helper Functions ---
 
@@ -69,7 +68,7 @@ const formatDate = (date: Date) =>
     hour12: true,
   });
 
-// --- Home Screen Component (No changes here) ---
+// --- Home Screen Component ---
 
 const HomeScreenHeader = () => (
     <View className="flex-row justify-between items-center px-4 pt-4 pb-2">
@@ -92,13 +91,16 @@ const HomeScreenHeader = () => (
     </View>
 );
 
+// --- MODIFICATION: Updated QuickToolButton component ---
 const QuickToolButton: React.FC<{ iconSource: ImageSourcePropType; label: string; onPress: () => void; }> = ({ iconSource, label, onPress }) => (
     <TouchableOpacity
       onPress={onPress}
-      className="flex-1 rounded-2xl p-3 items-center justify-center aspect-square shadow-sm overflow-hidden"
+      // Removed aspect-square, added explicit vertical padding
+      className="flex-1 rounded-2xl items-center justify-center py-5 shadow-sm overflow-hidden"
     >
-      <LinearGradient colors={figmaBlueGradient} style={StyleSheet.absoluteFillObject} />
-      <Image source={iconSource} className="w-10 h-10" resizeMode="contain" />
+      <LinearGradient colors={figmaBlueGradientNew} style={StyleSheet.absoluteFillObject} />
+      {/* Icon is slightly smaller */}
+      <Image source={iconSource} className="w-8 h-8" resizeMode="contain" />
       <Text className="text-white font-bold text-center mt-2 text-sm leading-tight">{label}</Text>
     </TouchableOpacity>
 );
@@ -114,7 +116,7 @@ const HomeScreen: React.FC<{ onNavigateToAppointments: () => void; }> = ({ onNav
           <View className="px-4 mt-4">
             {/* Daily Check-in Card */}
             <View className="rounded-3xl p-5 shadow-lg shadow-blue-400/30 overflow-hidden">
-              <LinearGradient colors={figmaBlueGradient} style={StyleSheet.absoluteFillObject} />
+              <LinearGradient colors={figmaBlueGradientNew} style={StyleSheet.absoluteFillObject} />
               <View className="flex-row items-center">
                 <Image source={require('../../assets/images/recording_icon.png')} className="w-20 h-20 mr-4" resizeMode="contain" />
                 <View className="flex-1">
@@ -129,7 +131,7 @@ const HomeScreen: React.FC<{ onNavigateToAppointments: () => void; }> = ({ onNav
   
             {/* Insight Reports Card */}
             <View className="rounded-3xl p-5 mt-4 shadow-lg shadow-blue-400/30 overflow-hidden">
-              <LinearGradient colors={figmaBlueGradient} style={StyleSheet.absoluteFillObject} />
+              <LinearGradient colors={figmaBlueGradientNew} style={StyleSheet.absoluteFillObject} />
               <View className="flex-row items-center">
                 <Image source={require('../../assets/images/insights_icon.png')} className="w-20 h-20 mr-4" resizeMode="contain" />
                 <View className="flex-1">
@@ -145,13 +147,13 @@ const HomeScreen: React.FC<{ onNavigateToAppointments: () => void; }> = ({ onNav
             {/* Forums and Appointment Cards */}
             <View className="flex-row mt-8 gap-4">
               <TouchableOpacity onPress={() => router.push('/tabs/forums')} className="flex-1 rounded-3xl py-4 px-4 shadow-lg shadow-blue-400/20 overflow-hidden items-center">
-                <LinearGradient colors={figmaBlueGradient} style={StyleSheet.absoluteFillObject} />
+                <LinearGradient colors={figmaBlueGradientNew} style={StyleSheet.absoluteFillObject} />
                 <Image source={require('../../assets/images/consult_icon.png')} className="w-14 h-14" resizeMode="contain" />
                 <Text className="text-white text-lg font-bold mt-2">Forums</Text>
                 <Text className="text-white/90 text-xs text-center mt-1 leading-4">Community forums to share and learn</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={onNavigateToAppointments} className="flex-1 rounded-3xl py-4 px-4 shadow-lg shadow-blue-400/20 overflow-hidden items-center">
-                <LinearGradient colors={figmaBlueGradient} style={StyleSheet.absoluteFillObject} />
+                <LinearGradient colors={figmaBlueGradientNew} style={StyleSheet.absoluteFillObject} />
                 <Image source={require('../../assets/images/consult_icon.png')} className="w-14 h-14" resizeMode="contain" />
                 <Text className="text-white text-lg font-bold mt-2">Appointment</Text>
                 <Text className="text-white/90 text-xs text-center mt-1 leading-4">Get expert advice through online consultation</Text>
@@ -159,16 +161,15 @@ const HomeScreen: React.FC<{ onNavigateToAppointments: () => void; }> = ({ onNav
             </View>
   
             {/* Quick Tools */}
-            <View className="bg-white rounded-3xl p-5 mt-8 shadow-md shadow-slate-300">
-              <View className="flex-row items-center mb-4">
+            <View className="bg-white rounded-3xl p-4 mt-8 shadow-md shadow-slate-300">
+              <View className="flex-row items-center mb-2">
                 <Ionicons name="settings-outline" size={24} color="#374151" />
                 <Text className="text-xl font-bold text-gray-800 ml-2">Quick Tools</Text>
               </View>
-              <Text className="text-gray-600 text-sm mb-5">Manage your child's behaviors, past stories, and learning activities</Text>
+              <Text className="text-gray-600 text-sm mb-4 px-1">Check out your child's past check-ins, and learning activities</Text>
               <View className="flex-row gap-4">
-                <QuickToolButton iconSource={require('../../assets/images/quicktool_1.png')} label={"Update\nBehaviours"} onPress={() => { }} />
-                <QuickToolButton iconSource={require('../../assets/images/quicktool_2.png')} label="Story History" onPress={() => { }} />
-                <QuickToolButton iconSource={require('../../assets/images/quicktool_3.png')} label="Daily Activities" onPress={() => { }} />
+                <QuickToolButton iconSource={require('../../assets/images/quicktool_1.png')} label={"Check-Ins\nHistory"} onPress={() => { }} />
+                <QuickToolButton iconSource={require('../../assets/images/quicktool_2.png')} label={"Parenting\nTips"} onPress={() => { }} />
               </View>
             </View>
   
@@ -179,18 +180,12 @@ const HomeScreen: React.FC<{ onNavigateToAppointments: () => void; }> = ({ onNav
                 <Text className="text-xl font-bold text-gray-800 ml-2">Activity Overview</Text>
               </View>
               <Text className="text-gray-600 text-sm mb-5">See how consistently you've shared stories and track your child's insight progress</Text>
-              <View className="flex-row gap-4">
-                <View className="flex-1 rounded-2xl p-3 shadow-sm overflow-hidden items-center">
-                  <LinearGradient colors={figmaBlueGradient} style={StyleSheet.absoluteFillObject} />
-                  <Text className="text-white text-xl font-bold mb-1">0/30</Text>
-                  <Text className="text-white font-bold text-base text-center">Daily Story Activity</Text>
-                  <Text className="text-white/80 text-sm text-center mt-1">Days with story entries in the last 30 days</Text>
-                </View>
-                <View className="flex-1 rounded-2xl p-3 shadow-sm overflow-hidden items-center justify-center">
-                  <LinearGradient colors={figmaBlueGradient} style={StyleSheet.absoluteFillObject} />
-                  <Text className="text-white font-bold text-xl text-center">Activities Summary</Text>
-                  <Text className="text-white/80 text-sm text-center mt-2">0 Daily activities completed</Text>
-                </View>
+              
+              {/* --- MODIFICATION: Replaced with single Activity Overview element --- */}
+              <View className="items-center py-4">
+                <Text className="text-5xl font-bold" style={{ color: figmaBlueGradientNew[0] }}>0/30</Text>
+                <Text className="text-gray-800 text-lg font-semibold mt-2">Daily Check-in Activity</Text>
+                <Text className="text-gray-500 text-sm mt-1">Days with story entries in the last 30 days</Text>
               </View>
             </View>
           </View>
@@ -198,12 +193,13 @@ const HomeScreen: React.FC<{ onNavigateToAppointments: () => void; }> = ({ onNav
       </SafeAreaView>
     );
 };
-// --- Appointment Flow Components ---
 
+// --- Appointment Flow Components (NO CHANGES BEYOND THIS POINT) ---
+// ... (All the existing Appointment Flow components and logic remain exactly the same) ...
+// The rest of the file is unchanged.
 type AppointmentFlowProps = { onGoBackToHome: () => void; };
 type AppointmentViewMode = 'appointmentList' | 'doctorDetail' | 'selectDate' | 'myAppointments';
 
-// --- Header Component ---
 type AppointmentHeaderProps = {
   onBack?: () => void;
   title?: string;
@@ -236,7 +232,6 @@ const AppointmentHeader: React.FC<AppointmentHeaderProps> = ({ onBack, title }) 
   </View>
 );
 
-// --- Appointment List View ---
 type AppointmentListProps = {
   onBack: () => void;
   onSelectDoctor: (doctor: Doctor) => void;
@@ -277,7 +272,6 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ onBack, onSelectDocto
       <View className="px-5 pt-0">
         {doctors.map(doc => (
           <TouchableOpacity key={doc.id} onPress={() => onSelectDoctor(doc)} className="bg-white rounded-xl p-4 mb-4 shadow-md flex-row items-center">
-             {/* Assuming avatar is a URL from the API */}
             <Image source={{ uri: doc.avatar as string }} className="w-16 h-16 rounded-lg mr-4" />
             <View className="flex-1">
               <Text className="text-lg font-bold text-neutral-800">{doc.name}</Text>
@@ -296,7 +290,6 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ onBack, onSelectDocto
   </>
 );
 
-// --- Doctor Detail View ---
 type DoctorDetailProps = {
   doctor: Doctor | null;
   onBack: () => void;
@@ -339,7 +332,6 @@ const DoctorDetail: React.FC<DoctorDetailProps> = ({ doctor, onBack, onGoToBooki
   );
 };
 
-// --- Date Selection View ---
 type SelectDateProps = {
   onBack: () => void;
   onConfirm: () => void;
@@ -417,7 +409,6 @@ const SelectDate: React.FC<SelectDateProps> = ({ onBack, onConfirm, currentCalen
       </>
     );
 };
-// --- My Appointments View ---
 type MyAppointmentsHandlers = {
   handleCancelAppointment: (id: string) => void;
   handleReschedule: (app: Appointment) => void;
@@ -489,7 +480,6 @@ const MyAppointments: React.FC<MyAppointmentsProps> = ({ onBack, appointments, d
   );
 };
 
-// --- Modal Components (No changes here) ---
 type ConfirmationModalProps = {
     visible: boolean;
     onClose: () => void;
@@ -552,13 +542,12 @@ const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, onSubmit, d
       </View>
     </Modal>
 );
-// --- Main Appointment Flow Logic (MODIFIED) ---
+
 const AppointmentFlow: React.FC<AppointmentFlowProps> = ({ onGoBackToHome }) => {
   const [viewMode, setViewMode] = useState<AppointmentViewMode>('appointmentList');
   const [activeDoctor, setActiveDoctor] = useState<Doctor | null>(null);
   const [activeAppointment, setActiveAppointment] = useState<Appointment | null>(null);
   
-  // State for data fetched from API
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -572,16 +561,14 @@ const AppointmentFlow: React.FC<AppointmentFlowProps> = ({ onGoBackToHome }) => 
   const [isRatingModalVisible, setRatingModalVisible] = useState(false);
   const [currentRating, setCurrentRating] = useState(0);
 
-  // Fetch initial data on component mount
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        // Fetch doctors and appointments in parallel
         const [doctorsResponse, appointmentsResponse] = await Promise.all([
           fetch(`${API_BASE_URL}/doctors`),
-          fetch(`${API_BASE_URL}/appointments`) // Assuming this fetches for the logged-in user
+          fetch(`${API_BASE_URL}/appointments`)
         ]);
 
         if (!doctorsResponse.ok || !appointmentsResponse.ok) {
@@ -591,7 +578,6 @@ const AppointmentFlow: React.FC<AppointmentFlowProps> = ({ onGoBackToHome }) => 
         const doctorsData = await doctorsResponse.json();
         const appointmentsData = await appointmentsResponse.json();
 
-        // Convert date strings from API to Date objects
         const processedAppointments = appointmentsData.map((app: any) => ({
           ...app,
           datetime: new Date(app.datetime),
@@ -635,7 +621,6 @@ const AppointmentFlow: React.FC<AppointmentFlowProps> = ({ onGoBackToHome }) => 
   const handleConfirmAppointment = async () => {
     if (!activeDoctor || !selectedDate || !selectedTime) return;
     
-    // Convert selected time to a full Date object
     const [time, period] = selectedTime.split(' ');
     let [h, m] = time.split('.').map(Number);
     if (period === 'PM' && h < 12) h += 12;
@@ -645,18 +630,18 @@ const AppointmentFlow: React.FC<AppointmentFlowProps> = ({ onGoBackToHome }) => 
 
     const appointmentPayload = {
         doctorId: activeDoctor.id,
-        datetime: finalDateTime.toISOString(), // Send as ISO string
+        datetime: finalDateTime.toISOString(),
     };
 
     try {
         let response;
-        if (activeAppointment) { // This is a reschedule (UPDATE)
+        if (activeAppointment) {
             response = await fetch(`${API_BASE_URL}/appointments/${activeAppointment.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ datetime: appointmentPayload.datetime }),
             });
-        } else { // This is a new booking (CREATE)
+        } else {
             response = await fetch(`${API_BASE_URL}/appointments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -667,7 +652,6 @@ const AppointmentFlow: React.FC<AppointmentFlowProps> = ({ onGoBackToHome }) => 
         if (!response.ok) throw new Error('Failed to save appointment.');
         
         const savedAppointment = await response.json();
-        // Update local state with the response from the server
         const updatedAppointment = { ...savedAppointment, datetime: new Date(savedAppointment.datetime) };
 
         if (activeAppointment) {
@@ -795,12 +779,9 @@ const AppointmentFlow: React.FC<AppointmentFlowProps> = ({ onGoBackToHome }) => 
   );
 };
 
-// --- Main Page Component (No changes here) ---
-
 const IndexPage = () => {
     const [viewMode, setViewMode] = useState<'home' | 'appointment'>('home');
   
-    // Reset to home screen when the tab is focused
     useFocusEffect(React.useCallback(() => {
       setViewMode('home');
     }, []));

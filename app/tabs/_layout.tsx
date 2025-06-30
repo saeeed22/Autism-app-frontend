@@ -34,7 +34,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="add"
         options={{
-          title: 'Add', // We give it a title now
+          title: 'Check In', // We give it a title now
           // CHANGE 3: We use a standard tabBarIcon, not a custom button.
           tabBarIcon: ({ color }) => <Ionicons name="add-circle" size={28} color={color} />,
         }}

@@ -9,8 +9,8 @@ export default function Index() {
   useEffect(() => {
     
     const timeout = setTimeout(() => {
-      router.replace("/tabs");
-    }, 6000);
+      router.replace("/Login");
+    }, 4000);
 
     return () => clearTimeout(timeout);
   }, []);
