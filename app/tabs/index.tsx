@@ -122,7 +122,7 @@ const HomeScreen: React.FC<{ onNavigateToAppointments: () => void; }> = ({ onNav
                 <View className="flex-1">
                   <Text className="text-white text-xl font-bold">Daily Check-In</Text>
                   <Text className="text-white/90 text-sm mt-1 leading-5">Captures your child's day with photos or videos</Text>
-                  <TouchableOpacity onPress={() => router.push('/tabs/add')} className="bg-white rounded-full py-3 px-8 mt-4 self-start">
+                  <TouchableOpacity onPress={() => router.push('/BehaviorChallenges')} className="bg-white rounded-full py-3 px-8 mt-4 self-start">
                     <Text className="text-blue-500 font-bold text-sm tracking-wider uppercase">Check-in</Text>
                   </TouchableOpacity>
                 </View>

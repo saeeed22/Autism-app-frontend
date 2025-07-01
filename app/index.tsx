@@ -11,7 +11,7 @@ export default function Index() {
     if (!router) return;
 
     const checkLoginStatus = async () => {
-      const isLoggedIn = true; // Replace with your auth logic
+      const isLoggedIn = false; // Replace with your auth logic
 
       if (isLoggedIn) {
         router.replace("/tabs");

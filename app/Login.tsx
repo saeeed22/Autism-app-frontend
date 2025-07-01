@@ -256,7 +256,7 @@ export default function LoginSignup() {
 
             <TouchableOpacity
               className="bg-white w-full py-4 rounded-full items-center mt-6"
-              onPress={() => router.push("/Options")}
+              onPress={() => router.push("/asisstOptions")}
             >
               <Text className="text-blue-600 font-bold">NEXT</Text>
             </TouchableOpacity>

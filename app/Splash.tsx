@@ -1,10 +1,17 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import GradientBackground from "../components/GradientBackground";
 
 export default function Splash() {
   const router = useRouter();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+        router.replace("/");
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [router]);
 
   return (
     <GradientBackground>
@@ -20,12 +27,6 @@ export default function Splash() {
         <Text className="text-white text-center mt-2">
           Lorem Ipsum is simply dummy text of the printing and typesetting industry.
         </Text>
-        <TouchableOpacity
-          onPress={() => router.push("/Options")}
-          className="bg-white w-full py-4 rounded-lg items-center mt-6"
-        >
-          <Text className="text-blue-600 font-semibold text-xl">Next</Text>
-        </TouchableOpacity>
       </View>
     </GradientBackground>
   );

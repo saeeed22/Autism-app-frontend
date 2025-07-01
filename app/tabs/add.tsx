@@ -15,7 +15,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // --- API Configuration ---
-const API_BASE_URL = 'https://your-backend-api.com/api'; // <-- IMPORTANT: REPLACE WITH YOUR API
+const API_BASE_URL = 'http://127.0.0.1:8000'; // <-- IMPORTANT: REPLACE WITH YOUR API
 
 // --- Types ---
 type ViewMode = 'main' | 'quiz' | 'summary';
@@ -118,7 +118,7 @@ const AddScreen: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [checkIns, setCheckIns] = useState<CheckInItem[]>([]);
   const [summaryData, setSummaryData] = useState<CheckInSummary | null>(null);
-
+  
   // Network State
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,32 +133,33 @@ const AddScreen: React.FC = () => {
         try {
           // Fetch all initial data in parallel
           const [statusRes, questionsRes, checkInsRes] = await Promise.all([
-            fetchWithAuth('/check-ins/today/status'),
-            fetchWithAuth('/check-ins/questions'),
-            fetchWithAuth('/check-ins'),
+            fetchWithAuth('/assessment/questions/71'),
+            fetchWithAuth('/assessment/questions/71'),
+            fetchWithAuth('/assessment/questions/71'),
           ]);
-          setCanShowCheckin(statusRes.canCheckIn);
+          setCanShowCheckin(statusRes.canCheckIn ?? true); // Default to true if not provided
           setQuestions(questionsRes);
           setCheckIns(checkInsRes);
           
           // Reset answers state based on fetched questions
-          const initialAnswers = questionsRes.reduce((acc: Record<string, Answer>, q: Question) => {
+            const initialAnswers = questionsRes.reduce((acc: Record<string, Answer>, q: Question) => {
             acc[q.id] = null;
             return acc;
-          }, {});
-          setAnswers(initialAnswers);
+            }, {});
+            // Set assessment_id as default in answers state
+            setAnswers({ ...initialAnswers, assessment_id: '71' });
 
-        } catch (err: any) {
-          setError(err.message);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      loadInitialData();
-    }, [])
-  );
+          } catch (err: any) {
+            setError(err.message);
+          } finally {
+            setIsLoading(false);
+          }
+          };
+          loadInitialData();
+        }, [])
+        );
 
-  const handleAnswer = (questionId: string, answer: Answer) => setAnswers(prev => ({ ...prev, [questionId]: answer }));
+        const handleAnswer = (question_id: string, response_text: Answer) => setAnswers(prev => ({ ...prev, [question_id]: response_text}));
   const handleNext = () => setCurrentQuestionIndex(prev => Math.min(prev + 1, questions.length - 1));
   const handleBack = () => setCurrentQuestionIndex(prev => Math.max(prev - 1, 0));
 
@@ -166,12 +167,15 @@ const AddScreen: React.FC = () => {
     setIsLoading(true);
     try {
       const answersPayload = {
-          answers: Object.entries(answers).map(([questionId, answer]) => ({
-              questionId,
-              answer
+        answers: Object.entries(answers)
+          .filter(([key]) => key !== "assessment_id")
+          .map(([question_id, response_text]) => ({
+            assessment_id: "71",
+            question_id,
+            response_text
           }))
       };
-      const summaryResult: CheckInSummary = await fetchWithAuth('/check-ins', {
+      const summaryResult: CheckInSummary = await fetchWithAuth('/assessment/answer/create', {
         method: 'POST',
         body: JSON.stringify(answersPayload)
       });
@@ -217,7 +221,7 @@ const AddScreen: React.FC = () => {
             <Text className="text-4xl font-bold text-neutral-800 text-center">
                 Question {currentQuestionIndex + 1} of {questions.length}
             </Text>
-            <Text className="text-lg text-neutral-600 text-center mt-6 mb-8">{currentQuestion.text}</Text>
+            <Text className="text-lg text-neutral-600 text-center mt-6 mb-8">{currentQuestion.question_text}</Text>
             <View className="items-center">
                 <View className="w-4/5">
                     <TouchableOpacity onPress={() => handleAnswer(currentQuestion.id, 'Yes')} className={`py-4 rounded-2xl border-2 mb-4 bg-white ${answers[currentQuestion.id] === 'Yes' ? 'border-blue-500' : 'border-gray-300'}`}>

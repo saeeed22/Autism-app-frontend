@@ -7,7 +7,7 @@ import {
   ImageBackground,
   StyleSheet,
 } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import GradientBackground from "../components/GradientBackground";
 import ChallengeCard from "../components/ChallengeCard";
@@ -26,7 +26,31 @@ const CHALLENGES = [
 
 export default function BehaviourChallenges() {
   const [selected, setSelected] = useState<string | null>(null);
+  const [challenges, setChallenges] = useState(CHALLENGES);
   const router = useRouter();
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/assessment/scenarios/")
+      .then((res) => {
+        if (!res.ok) throw new Error("API error");
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map((item) => ({
+            id: item.model_name || item.id.toString(),
+            label: item.name,
+            image: "http://127.0.0.1:8000/static/"+item.img_path || require("../assets/images/challenge_1.png"),
+          }));
+          setChallenges(mapped);
+          console.log("Challenges fetched from API:", mapped);
+          
+        }
+      })
+      .catch(() => {
+        setChallenges(CHALLENGES);
+      });
+  }, []);
 
   const handleNext = () => {
     if (selected) {
@@ -50,9 +74,7 @@ export default function BehaviourChallenges() {
         style={styles.whiteGradient}
       />
 
-      {/* Main container no longer uses justify-between */}
       <View className="flex-1 pt-20">
-        {/* Header */}
         <View className="px-4">
             <View className="items-center justify-center relative mb-3">
               <TouchableOpacity
@@ -73,16 +95,13 @@ export default function BehaviourChallenges() {
             <View className="h-[1px] bg-white/50 my-3 mb-4" />
         </View>
 
-        {/* Challenge Grid */}
         <ScrollView
           showsVerticalScrollIndicator={false}
-          // --- CHANGE 1: ADD SIGNIFICANT PADDING TO THE BOTTOM ---
-          // This ensures the last row of challenges can scroll above the floating button.
           contentContainerStyle={{ paddingBottom: 120, paddingHorizontal: 16 }}
           className="flex-1"
         >
           <View className="flex-row flex-wrap justify-between">
-            {CHALLENGES.map((challenge) => (
+            {challenges.map((challenge) => (
               <ChallengeCard
                 key={challenge.id}
                 label={challenge.label}
@@ -130,7 +149,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
   },
- 
   floatingButtonContainer: {
     position: 'absolute',
     bottom: 24, 

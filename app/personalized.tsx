@@ -51,7 +51,7 @@ export default function PersonalizationScreen() {
 
     // Move to next screen
     const timer = setTimeout(() => {
-      router.replace("/tabs");
+      router.replace("/tabs/add");
     }, NAVIGATE_DELAY);
 
     return () => clearTimeout(timer);
